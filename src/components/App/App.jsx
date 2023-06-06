@@ -1,42 +1,42 @@
-import { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, SectionComponents, Title, WarningText } from './App.styled';
 import { ContactForm } from 'components/ContactForm';
 import { Filter } from 'components/Filter';
 import { ContactList } from 'components/ContactList';
-
 import { nanoid } from 'nanoid';
 
 const LOCALSTORAGE_KEY_CONTACTS = 'contacts';
 
-export class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState(() => {
+    const storedContacts = localStorage.getItem(LOCALSTORAGE_KEY_CONTACTS);
+    return storedContacts
+      ? JSON.parse(storedContacts)
+      : [
+          { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+          { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+          { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+          { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+        ];
+  });
 
-  componentDidMount() {
-    const contacts = localStorage.getItem(LOCALSTORAGE_KEY_CONTACTS);
-    const extractedContacts = JSON.parse(contacts);
-    if (extractedContacts) {
-      this.setState({ contacts: extractedContacts });
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    const storedContacts = localStorage.getItem(LOCALSTORAGE_KEY_CONTACTS);
+    if (storedContacts) {
+      setContacts(JSON.parse(storedContacts));
     }
-  }
+  }, []);
 
-  componentDidUpdate(_, prevState) {
-    if (prevState.contacts !== this.state.contacts) {
-      localStorage.setItem(LOCALSTORAGE_KEY_CONTACTS, JSON.stringify(this.state.contacts));
-    }
-  }
+  useEffect(() => {
+    localStorage.setItem(LOCALSTORAGE_KEY_CONTACTS, JSON.stringify(contacts));
+  }, [contacts]);
 
-  createUser = data => {
+  const createUser = data => {
     const { name } = data;
 
-    const userExists = this.state.contacts.some(
+    const userExists = contacts.some(
       user => user.name.toLowerCase() === name.toLowerCase()
     );
 
@@ -49,15 +49,14 @@ export class App extends Component {
       id: nanoid(),
       ...data,
     };
-    this.setState(({ contacts }) => ({ contacts: [newUser, ...contacts] }));
+    setContacts(prevContacts => [newUser, ...prevContacts]);
   };
 
-  changeFilter = e => {
-    this.setState({ filter: e.currentTarget.value });
+  const changeFilter = e => {
+    setFilter(e.currentTarget.value);
   };
 
-  getVisibleContacts = () => {
-    const { contacts, filter } = this.state;
+  const getVisibleContacts = () => {
     const normalizedFilter = filter.toLowerCase();
 
     return contacts.filter(contact =>
@@ -65,35 +64,32 @@ export class App extends Component {
     );
   };
 
-  deleteContact = contactId => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== contactId),
-    }));
+  const deleteContact = contactId => {
+    setContacts(prevContacts =>
+      prevContacts.filter(contact => contact.id !== contactId)
+    );
   };
 
-  render() {
-    const { filter } = this.state;
-    const visibleContacts = this.getVisibleContacts();
+  const visibleContacts = getVisibleContacts();
 
-    return (
-      <Container>
-        <SectionComponents>
-          <Title>Phonebook</Title>
-          <ContactForm createUser={this.createUser} />
-        </SectionComponents>
-        <SectionComponents>
-          <Title>Contacts</Title>
-          <Filter value={filter} onChange={this.changeFilter} />
-          {visibleContacts.length ? (
-            <ContactList
-              contacts={visibleContacts}
-              handleDeleteContact={this.deleteContact}
-            />
-          ) : (
-            <WarningText>Contact not found!</WarningText>
-          )}
-        </SectionComponents>
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <SectionComponents>
+        <Title>Phonebook</Title>
+        <ContactForm createUser={createUser} />
+      </SectionComponents>
+      <SectionComponents>
+        <Title>Contacts</Title>
+        <Filter value={filter} onChange={changeFilter} />
+        {visibleContacts.length ? (
+          <ContactList
+            contacts={visibleContacts}
+            handleDeleteContact={deleteContact}
+          />
+        ) : (
+          <WarningText>Contact not found!</WarningText>
+        )}
+      </SectionComponents>
+    </Container>
+  );
+};
